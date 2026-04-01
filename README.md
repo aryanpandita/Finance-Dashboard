@@ -86,7 +86,29 @@ The app serves interactive OpenAPI docs at **`/api-docs`**. The machine-readable
 
 **Deployed API:** If this project is hosted publicly, use **`https://<your-domain>/api-docs`** instead—no local setup required beyond having the URL.
 
-**Without running the server:** You can still read the contract in `src/docs/openapi.json` on GitHub (raw file or blob view).
+### View the OpenAPI Contract
+
+The API contract can be accessed directly on GitHub without running the server or setting up a local environment.
+
+Reviewers can navigate to the following file in the repository:
+
+*   `src/docs/openapi.json`
+
+Alternatively, the contract can be accessed using the links below (replace `OWNER`, `REPO`, and `BRANCH` as applicable, typically `main`):
+
+| Purpose | URL |
+| --- | --- |
+| Raw JSON (recommended for tools or direct import) | https://raw.githubusercontent.com/OWNER/REPO/BRANCH/src/docs/openapi.json |
+| GitHub UI (for viewing with syntax highlighting) | https://github.com/OWNER/REPO/blob/BRANCH/src/docs/openapi.json |
+
+For submission forms requiring a “Live Demo or API Documentation URL”, the **raw JSON link** can be used.
+
+**Optional:** The specification can also be imported into Swagger Editor:
+
+*   Open [https://editor.swagger.io](https://editor.swagger.io)
+*   Use **File → Import URL** and paste the raw OpenAPI URL  
+      
+
 
 ## Environment variables
 
@@ -172,9 +194,29 @@ Every authenticated request loads the user from the database: **inactive** accou
 - Self-registration creates **viewer** users only; promotion is via admin or seed script.
 - Weekly trend buckets were omitted; monthly trends cover the “trends” requirement.
 
+## Push this repo to GitHub
+
+From the project root (first time: create an empty repo on GitHub, then):
+
+```bash
+git status
+git add -A
+git commit -m "Your message"
+git branch -M main
+git remote add origin https://github.com/OWNER/REPO.git
+git push -u origin main
+```
+
+If `remote` already exists, skip `git remote add` and only run `git push`. Ensure `.env` is **not** committed (listed in `.gitignore`).
+
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Start with nodemon |
 | `npm start` | Start with Node |
+
+
+## Author 
+
+**Aryan Pandita**
