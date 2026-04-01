@@ -1,0 +1,320 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Finance Dashboard API",
+    "description": "REST API for users, roles, financial records, and dashboard analytics. Amounts are in paise (integer). Use Bearer JWT for protected routes.",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "/", "description": "Same origin (set server URL in Postman / deployed host)" }],
+  "tags": [
+    { "name": "Health" },
+    { "name": "Auth" },
+    { "name": "Users", "description": "Admin only" },
+    { "name": "Records" },
+    { "name": "Dashboard" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string" },
+          "errors": { "type": "array", "items": { "type": "object" } }
+        }
+      },
+      "RegisterBody": {
+        "type": "object",
+        "required": ["name", "email", "password"],
+        "properties": {
+          "name": { "type": "string", "minLength": 2 },
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "minLength": 6 }
+        }
+      },
+      "LoginBody": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string" }
+        }
+      },
+      "RefreshBody": {
+        "type": "object",
+        "required": ["refreshToken"],
+        "properties": {
+          "refreshToken": { "type": "string" }
+        }
+      },
+      "UpdateRoleBody": {
+        "type": "object",
+        "required": ["role"],
+        "properties": {
+          "role": { "type": "string", "enum": ["viewer", "analyst", "admin"] }
+        }
+      },
+      "UpdateStatusBody": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": { "type": "string", "enum": ["active", "inactive"] }
+        }
+      },
+      "CreateRecordBody": {
+        "type": "object",
+        "required": ["amount", "type", "category", "date"],
+        "properties": {
+          "amount": { "type": "integer", "minimum": 1, "description": "Paise" },
+          "type": { "type": "string", "enum": ["income", "expense"] },
+          "category": { "type": "string" },
+          "date": { "type": "string", "format": "date-time" },
+          "notes": { "type": "string", "maxLength": 500 }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "responses": {
+          "200": { "description": "OK" }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Register (role: viewer)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RegisterBody" } }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created" },
+          "400": { "description": "Validation error" },
+          "409": { "description": "Email already registered" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/LoginBody" } }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK" },
+          "401": { "description": "Invalid credentials" },
+          "403": { "description": "Account inactive" }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Refresh tokens",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RefreshBody" } }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK" },
+          "401": { "description": "Invalid refresh token" },
+          "403": { "description": "Account inactive" }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Logout (clears refresh token)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "OK" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "List users",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "403": { "description": "Not admin" }
+        }
+      }
+    },
+    "/api/users/{id}/role": {
+      "patch": {
+        "tags": ["Users"],
+        "summary": "Update user role",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/UpdateRoleBody" } }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK" },
+          "400": { "description": "Cannot change own role" },
+          "403": { "description": "Not admin" },
+          "404": { "description": "User not found" }
+        }
+      }
+    },
+    "/api/users/{id}/status": {
+      "patch": {
+        "tags": ["Users"],
+        "summary": "Update user status",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/UpdateStatusBody" } }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK" },
+          "403": { "description": "Not admin" },
+          "404": { "description": "User not found" }
+        }
+      }
+    },
+    "/api/records": {
+      "get": {
+        "tags": ["Records"],
+        "summary": "List records",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "type", "in": "query", "schema": { "type": "string", "enum": ["income", "expense"] } },
+          { "name": "category", "in": "query", "schema": { "type": "string" } },
+          { "name": "dateFrom", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "dateTo", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["Records"],
+        "summary": "Create record (admin only)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/CreateRecordBody" } }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created" },
+          "403": { "description": "Not admin" }
+        }
+      }
+    },
+    "/api/records/{id}": {
+      "get": {
+        "tags": ["Records"],
+        "summary": "Get record by id",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "OK" },
+          "404": { "description": "Not found" }
+        }
+      },
+      "patch": {
+        "tags": ["Records"],
+        "summary": "Update record (admin only)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "type": "object" } }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK" },
+          "403": { "description": "Not admin" },
+          "404": { "description": "Not found" }
+        }
+      },
+      "delete": {
+        "tags": ["Records"],
+        "summary": "Soft delete (admin only)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "OK" },
+          "403": { "description": "Not admin" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/api/dashboard/summary": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Dashboard summary (viewer+)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "OK" },
+          "403": { "description": "Inactive user" }
+        }
+      }
+    },
+    "/api/dashboard/trends": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Monthly trends (analyst+)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "months", "in": "query", "schema": { "type": "integer", "default": 6 } }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "403": { "description": "Viewer not allowed" }
+        }
+      }
+    },
+    "/api/dashboard/categories": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Category totals (analyst+)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "OK" },
+          "403": { "description": "Viewer not allowed" }
+        }
+      }
+    }
+  }
+}

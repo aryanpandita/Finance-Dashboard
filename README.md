@@ -28,6 +28,66 @@ npm run dev
 
 Server listens on `PORT` (default `5000`). Health check: `GET /`.
 
+## API documentation (Swagger UI)
+
+The app serves interactive OpenAPI docs at **`/api-docs`**. The machine-readable spec lives in `src/docs/openapi.json`.
+
+### For reviewers: use Swagger locally
+
+`http://localhost` only runs on **your** computer. A reviewer must clone the repo, configure the environment, and start the server on **their** machine—then Swagger works in **their** browser.
+
+1. **Clone the repository** and open a terminal in the project root.
+
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Start MongoDB** (local instance or use a MongoDB Atlas connection string).
+
+4. **Create `.env`** in the project root. Copy from `.env.example` and set at minimum:
+
+   - `MONGODB_URI`
+   - `ACCESS_TOKEN_SECRET`
+   - `REFRESH_TOKEN_SECRET`
+
+5. **Seed an admin user** (required to test admin-only routes). Add to `.env`: `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, then run:
+
+   ```bash
+   node src/scripts/seedAdmin.js
+   ```
+
+6. **Start the API**
+
+   ```bash
+   npm run dev
+   ```
+
+   Wait until the console shows the server listening (default port **5000**).
+
+7. **Open Swagger UI** in a browser:
+
+   `http://localhost:5000/api-docs`
+
+   If `PORT` in `.env` is not `5000`, use `http://localhost:<PORT>/api-docs`.
+
+8. **Get a JWT and call protected routes**
+
+   - Open **`POST /api/auth/register`** or **`POST /api/auth/login`**.
+   - Click **Try it out**, fill the body, click **Execute**.
+   - In the response, copy the **`accessToken`** value from `data`.
+   - Click the green **Authorize** button at the top of the page.
+   - In the value field, paste **only the token** (Swagger adds the `Bearer` prefix for you in many versions; if it asks for the full header, use: `Bearer <your-access-token>`).
+   - Click **Authorize**, then **Close**.
+   - You can now **Try it out** on routes that need authentication (e.g. `/api/records`, `/api/dashboard/summary`). Use the **admin** account from the seed script for admin-only endpoints.
+
+9. **If the access token expires**, call **`POST /api/auth/refresh`** with the `refreshToken` from login/register, or log in again.
+
+**Deployed API:** If this project is hosted publicly, use **`https://<your-domain>/api-docs`** instead—no local setup required beyond having the URL.
+
+**Without running the server:** You can still read the contract in `src/docs/openapi.json` on GitHub (raw file or blob view).
+
 ## Environment variables
 
 Validated at startup with Zod (`src/config/env.js`).
